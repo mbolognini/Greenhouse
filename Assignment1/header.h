@@ -3,6 +3,7 @@
 -----------LIBRARIES-------------
 -------------------------------*/
 
+#
 #include <Servo.h>
 #include <ESP8266WiFi.h>
 #include <LiquidCrystal_I2C.h>
@@ -69,7 +70,7 @@
 
 #define WIFI_POWER_THRESHOLD -75 // Sotto i -75 dBm la connessione è considerata debole
 
-#define LOW_LIGHT_THRESHOLD 100 // analogico (0-1023).  In aula studio c'è 118
+#define LOW_LIGHT_THRESHOLD 500 // analogico (0-1023).  Soglia di buio: se valore sopra la soglia, c'è poca luce   (500 va bene per l'aula studio)
 
 #define STRONG_COLD_THRESHOLD 5 // Vicino al limite minimo del sensore
 #define WEAK_COLD_THRESHOLD 18  // Fresco, soglia tipica per riscaldamento

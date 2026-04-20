@@ -70,6 +70,13 @@ void setup()
   Wire.beginTransmission(DISPLAY_ADDR);
   byte error = Wire.endTransmission();
 
+  if (error == 0)
+  {
+    Serial.println(F("LCD found."));
+    lcd.begin(DISPLAY_CHARS, 2); // initialize the lcd
+    lcd.setBacklight(255);
+  }
+
   servo.attach(SERVO_PIN, SERVO_PWM_MIN, SERVO_PWM_MAX);
   servo.write(current_servo_pos);
 
@@ -77,7 +84,7 @@ void setup()
   check_influxdb();
 
   Serial.println(F("--- System Started ---"));
-}
+  }
 
 void loop()
 {
@@ -210,7 +217,7 @@ void check_humidity()
 
 void check_light()
 {
-  if (light_value <= LOW_LIGHT_THRESHOLD)
+  if (light_value >= LOW_LIGHT_THRESHOLD)
   {
     is_dark = true;
   }
@@ -389,7 +396,7 @@ void update_display()
   Serial.print(F("Light: "));
   Serial.print(light_value);
   Serial.print(F(" "));
-  if (light_value <= LOW_LIGHT_THRESHOLD)
+  if (light_value >= LOW_LIGHT_THRESHOLD)
     Serial.println(F("*<>"));
   else
     Serial.println(F("<*>"));
@@ -412,32 +419,28 @@ void update_display()
 
   Serial.println(F("---------------------"));
 
+  lcd.home();
   lcd.clear();
 
   if (is_emergency)
   {
-    lcd.setCursor(0, 0);
     lcd.print("!!EMERGENZA!!");
 
     // Creiamo una lista di messaggi di emergenza da ciclare
     String emergencyMessages[4];
     int messageCount = 0;
 
-    // Controlla le cause specifiche dell'emergenza
-    if (is_fire)
-    {
+    //// Controlla le cause specifiche dell'emergenza
+    if (is_fire) {
       emergencyMessages[messageCount++] = "FUOCO RILEVATO!";
     }
-    if (temperature_value <= STRONG_COLD_THRESHOLD || temperature_value >= STRONG_HOT_THRESHOLD)
-    {
+    if (temperature_value <= STRONG_COLD_THRESHOLD || temperature_value >= STRONG_HOT_THRESHOLD) {
       emergencyMessages[messageCount++] = "Temp: " + String(temperature_value, 1) + "C";
     }
-    if (humidity_value <= STRONG_DRY_THRESHOLD || humidity_value >= STRONG_WET_THRESHOLD)
-    {
+    if (humidity_value <= STRONG_DRY_THRESHOLD || humidity_value >= STRONG_WET_THRESHOLD) {
       emergencyMessages[messageCount++] = "Hum: " + String(humidity_value, 1) + "%";
     }
-    if (wifi_power_value <= WIFI_POWER_THRESHOLD)
-    {
+    if (wifi_power_value <= WIFI_POWER_THRESHOLD) {
       emergencyMessages[messageCount++] = "WiFi: " + String(wifi_power_value) + "dBm";
     }
 
@@ -473,12 +476,12 @@ void update_display()
       lcd.setCursor(0, 0);
       lcd.print("Luce: " + String(light_value));
       lcd.setCursor(0, 1);
-      lcd.print("WiFi: " + String(wifi_power_value) + " dBm");
+      lcd.print("WiFi: " + String((int)wifi_power_value) + " dBm");
     }
   }
 
   // Incrementa l'indice della pagina per il prossimo ciclo
-  displayPage++;
+  displayPage = (displayPage + 1) % 2;
 }
 
 void update_db()
