@@ -1,9 +1,10 @@
 
+#ifndef HEADER_H
+#define HEADER_H
 /*-------------------------------
 -----------LIBRARIES-------------
 -------------------------------*/
 
-#
 #include <Servo.h>
 #include <ESP8266WiFi.h>
 #include <LiquidCrystal_I2C.h>
@@ -16,6 +17,8 @@
 /*-------------------------------
 ------SENSORS AND ACTUATORS------
 -------------------------------*/
+
+#define STATE_UPDATE_INTERVAL 1000
 
 // DHT
 #define DHTPIN D7
@@ -58,9 +61,7 @@
 
 // InfluxDB cfg
 #define INFLUXDB_URL "http://149.132.176.75:8086"                                                                   // IP and port of the InfluxDB server
-#define INFLUXDB_TOKEN "FlcfbYuuR_hoX26ghlqvtD0wDJ4p-9yaySFndn2u2hi591m42ZRm_BZSkGqf575RUSKzoHAWMZ87ry5uk7mi9Q=="   // API authentication token. Use an existing token or create a new one:
-                                                                                                                    //  InfluxDB UI -> Load Data -> API Tokens -> Generate API Token -> Custom API Token
-                                                                                                                    //  set a name for the token and select read and write permissions for your buket only!
+#define INFLUXDB_TOKEN "FlcfbYuuR_hoX26ghlqvtD0wDJ4p-9yaySFndn2u2hi591m42ZRm_BZSkGqf575RUSKzoHAWMZ87ry5uk7mi9Q=="
 #define INFLUXDB_ORG "labiot-org"                                                                                   // organization id (Use: InfluxDB UI -> Profile -> About -> <name under organization profile> )
 #define INFLUXDB_BUCKET "GiacomoMaggioni-bucket"                                                                    // bucket name (Use: InfluxDB UI -> Load Data -> Buckets)
 #define INFLUXDB_UPDATE_INTERVAL 15000                                                                              // Invia dati ogni 15 secondi
@@ -73,12 +74,29 @@
 
 #define LOW_LIGHT_THRESHOLD 500 // analogico (0-1023).  Soglia di buio: se valore sopra la soglia, c'è poca luce   (500 va bene per l'aula studio)
 
-#define STRONG_COLD_THRESHOLD 5 // Vicino al limite minimo del sensore
-#define WEAK_COLD_THRESHOLD 18  // Fresco, soglia tipica per riscaldamento
-#define WEAK_HOT_THRESHOLD 27   // Inizio sensazione di afa
-#define STRONG_HOT_THRESHOLD 40 // Molto caldo (il sensore arriva a 50)
+#define COLD_THRESHOLD 5 // Vicino al limite minimo del sensore
+#define HOT_THRESHOLD 40 // Molto caldo (il sensore arriva a 50)
 
-#define STRONG_DRY_THRESHOLD 25 // Il sensore legge male sotto il 20%
-#define WEAK_DRY_THRESHOLD 35   // Aria secca
-#define WEAK_WET_THRESHOLD 65   // Inizio umidità alta
-#define STRONG_WET_THRESHOLD 75 // Vicino al limite massimo del sensore (80%)
+#define DRY_THRESHOLD 25 // Il sensore legge male sotto il 20%
+#define WET_THRESHOLD 75 // Vicino al limite massimo del sensore (80%)
+
+struct Measurements {
+    float temp;
+    float hum;
+    int light;
+    bool isFire;
+    bool isAckButtonPressed;
+    long wifiStrength;
+};
+extern struct Measurements m;
+
+struct Status {
+    bool isEmergency;
+    bool isBadAir;
+    bool isDark;
+    bool isFire;
+    bool isAcknowledged;
+};
+extern struct Status s;
+
+#endif
