@@ -11,6 +11,7 @@
 #include <DHT.h>
 #include <Ticker.h>
 #include <InfluxDbClient.h>
+#include <ESP8266WebServer.h>
 
 /*-------------------------------
 ------SENSORS AND ACTUATORS------

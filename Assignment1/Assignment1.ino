@@ -9,6 +9,7 @@ Servo servo;
 char ssid[] = SECRET_SSID; // your network SSID (name)
 char pass[] = SECRET_PASS; // your network password
 WiFiClient client;
+ESP8266WebServer server(80);
 // Display
 LiquidCrystal_I2C lcd(DISPLAY_ADDR, DISPLAY_CHARS, DISPLAY_LINES);
 // InfluxDB cfg
@@ -64,6 +65,12 @@ void setup()
 
   WiFi.mode(WIFI_STA);
 
+  server.on("/", handle_root);
+  server.on("/data", handle_data);
+  server.on("/ACK", handle_ack);
+  server.onNotFound(handle_NotFound);
+  server.begin();
+
   dht.begin();
 
   Wire.begin();
@@ -84,7 +91,7 @@ void setup()
   check_influxdb();
 
   Serial.println(F("--- System Started ---"));
-  }
+}
 
 void loop()
 {
@@ -110,6 +117,96 @@ void loop()
   update_lamp();
 
   update_db();
+
+  server.handleClient(); // listening for clients on port 80
+}
+
+void handle_root()
+{
+  Serial.print(F("New Client with IP: "));
+  Serial.println(server.client().remoteIP().toString());
+  server.send(200, F("text/html"), SendHTML());
+}
+
+void handle_data()
+{
+  String json = "{";
+  json += "\"temperature\":" + String(temperature_value, 1) + ",";
+  json += "\"humidity\":" + String(humidity_value, 1) + ",";
+  json += "\"light\":" + String(light_value) + ",";
+  json += "\"flame\":" + String(flame_value ? "true" : "false") + ",";
+  json += "\"wifi\":" + String((int)wifi_power_value) + ",";
+  json += "\"is_emergency\":" + String(is_emergency ? "true" : "false") + ",";
+  json += "\"is_acknowledged\":" + String(is_acknowledged ? "true" : "false");
+  json += "}";
+  server.send(200, F("application/json"), json);
+}
+
+void handle_ack()
+{
+  if (is_emergency)
+  {
+    is_acknowledged = true;
+  }
+  server.send(200, F("text/plain"), F("OK"));
+}
+
+void handle_NotFound()
+{
+  server.send(404, F("text/plain"), F("Not found"));
+}
+
+String SendHTML()
+{
+  String ptr = F(
+      "<!DOCTYPE html> <html>\n"
+      "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n"
+      "<title>System Status</title>\n"
+      "<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n"
+      "body{margin-top: 50px;} h1 {color: #444444;margin: 30px auto 30px;} h3 {color: #444444;margin-bottom: 30px;}\n"
+      ".button {display: inline-block; background-color: #f39c12; border: none; color: white; padding: 13px 30px; text-decoration: none; font-size: 20px; margin: 20px auto; cursor: pointer; border-radius: 4px;}\n"
+      ".button:active {background-color: #e67e22;}\n"
+      ".val {font-size: 18px; color: #333; margin-bottom: 10px;}\n"
+      ".warning {color: red; font-size: 60px; margin-bottom: 20px;}\n"
+      "</style>\n"
+      "<script>\n"
+      "function updateData() {\n"
+      "  fetch('/data')\n"
+      "  .then(response => response.json())\n"
+      "  .then(data => {\n"
+      "    document.getElementById('temp').innerHTML = 'Temperature: ' + data.temperature + ' &deg;C';\n"
+      "    document.getElementById('hum').innerHTML = 'Humidity: ' + data.humidity + ' %';\n"
+      "    document.getElementById('light').innerHTML = 'Light: ' + data.light;\n"
+      "    document.getElementById('flame').innerHTML = 'Flame: ' + (data.flame ? 'YES' : 'NO');\n"
+      "    document.getElementById('wifi').innerHTML = 'WiFi Power: ' + data.wifi + ' dBm';\n"
+      "    let eZone = document.getElementById('emergency-zone');\n"
+      "    if(data.is_emergency) {\n"
+      "      let html = '<div class=\"warning\">&#9888;</div>\\n';\n"
+      "      if(!data.is_acknowledged) {\n"
+      "        html += `<a class=\"button\" href=\"#\" onclick=\"fetch('/ACK'); return false;\">Acknowledge</a>\\n`;\n"
+      "      }\n"
+      "      eZone.innerHTML = html;\n"
+      "    } else {\n"
+      "      eZone.innerHTML = '';\n"
+      "    }\n"
+      "  });\n"
+      "}\n"
+      "setInterval(updateData, 5000);\n"
+      "window.onload = updateData;\n"
+      "</script>\n"
+      "</head>\n"
+      "<body>\n"
+      "<h1>System Status</h1>\n"
+      "<div id=\"emergency-zone\"></div>\n"
+      "<h3>Sensor Values</h3>\n"
+      "<div class=\"val\" id=\"temp\">Temperature: -- &deg;C</div>\n"
+      "<div class=\"val\" id=\"hum\">Humidity: -- %</div>\n"
+      "<div class=\"val\" id=\"light\">Light: --</div>\n"
+      "<div class=\"val\" id=\"flame\">Flame: --</div>\n"
+      "<div class=\"val\" id=\"wifi\">WiFi Power: -- dBm</div>\n"
+      "</body>\n"
+      "</html>\n");
+  return ptr;
 }
 
 long connectToWiFi()
@@ -431,16 +528,20 @@ void update_display()
     int messageCount = 0;
 
     //// Controlla le cause specifiche dell'emergenza
-    if (is_fire) {
+    if (is_fire)
+    {
       emergencyMessages[messageCount++] = "FUOCO RILEVATO!";
     }
-    if (temperature_value <= STRONG_COLD_THRESHOLD || temperature_value >= STRONG_HOT_THRESHOLD) {
+    if (temperature_value <= STRONG_COLD_THRESHOLD || temperature_value >= STRONG_HOT_THRESHOLD)
+    {
       emergencyMessages[messageCount++] = "Temp: " + String(temperature_value, 1) + "C";
     }
-    if (humidity_value <= STRONG_DRY_THRESHOLD || humidity_value >= STRONG_WET_THRESHOLD) {
+    if (humidity_value <= STRONG_DRY_THRESHOLD || humidity_value >= STRONG_WET_THRESHOLD)
+    {
       emergencyMessages[messageCount++] = "Hum: " + String(humidity_value, 1) + "%";
     }
-    if (wifi_power_value <= WIFI_POWER_THRESHOLD) {
+    if (wifi_power_value <= WIFI_POWER_THRESHOLD)
+    {
       emergencyMessages[messageCount++] = "WiFi: " + String(wifi_power_value) + "dBm";
     }
 
@@ -500,20 +601,21 @@ void update_db()
   // È buona norma controllare i valori non validi (NaN) prima di inviarli.
   if (!isnan(temperature_value))
   {
-    pointDevice.addField("temperature", temperature_value);
+    pointDevice.addField("n_temperature", temperature_value);
   }
   if (!isnan(humidity_value))
   {
-    pointDevice.addField("humidity", humidity_value);
+    pointDevice.addField("n_humidity", humidity_value);
   }
-  pointDevice.addField("light", light_value);
-  pointDevice.addField("flame", flame_value);
+  pointDevice.addField("n_light", light_value);
+  pointDevice.addField("n_flame", (int)flame_value);
 
   // Aggiunge gli stati del sistema
-  pointDevice.addField("lamp_on", is_dark);
-  pointDevice.addField("air_vent_pos", current_servo_pos);
-  pointDevice.addField("wifi_power", (int)wifi_power_value);
-  pointDevice.addField("emergency", is_emergency);
+  // pointDevice.addField("n_lamp_on", (int)is_dark);
+  pointDevice.addField("n_air_vent_pos", current_servo_pos);
+  pointDevice.addField("n_wifi_power", (int)wifi_power_value);
+  // pointDevice.addField("n_emergency", (int)is_emergency);
+  // pointDevice.addField("n_acknowledged", (int)is_acknowledged);
 
   // Scrive il punto nel bucket di InfluxDB solo se il WiFi è connesso
   if (WiFi.status() == WL_CONNECTED)
