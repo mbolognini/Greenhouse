@@ -2,7 +2,6 @@
 #define SENSORS_H
 
 void setupSensors();
-
 int getLight();
 float getHumidity();
 float getTemperature();

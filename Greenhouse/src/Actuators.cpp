@@ -3,17 +3,13 @@
 #include <Ticker.h>
 #include "Params.h"
 
-
 Servo servo;
 
-// Variabili per il servo
 unsigned long lastServoUpdate = 0;
-int currServoPos = 0; // Inizia a 0, come impostato nel setup()
+int currServoPos = 0;
 
-// Variabili per l'emergenza (Ticker)
 Ticker emergencyTicker;
 bool isTickerActive = false;
-
 
 void setupActuators() {
     pinMode(LAMP_LED_PIN, OUTPUT);

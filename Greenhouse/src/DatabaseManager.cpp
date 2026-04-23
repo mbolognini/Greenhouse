@@ -5,8 +5,6 @@
 #include "Params.h"
 #include "WifiManager.h"
 
-
-// Inizializzazione delle istanze reali
 InfluxDBClient client_idb(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN);
 Point pointDevice("device_status");
 

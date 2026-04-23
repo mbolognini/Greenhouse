@@ -17,18 +17,18 @@ int displayPage = 0;
 LiquidCrystal_I2C lcd(DISPLAY_ADDR, DISPLAY_CHARS, DISPLAY_LINES);
 
 void setupDisplay() {
-    Wire.begin(); // Su ESP8266 puoi anche specificare i pin: Wire.begin(SDA_PIN, SCL_PIN);
+    Wire.begin();
     Wire.beginTransmission(DISPLAY_ADDR);
     byte error = Wire.endTransmission();
 
     if (error == 0) {
-        Serial.println(F("LCD trovato e inizializzato."));
+        Serial.println(F("LCD found and initialized."));
         lcd.begin(DISPLAY_CHARS, 2);
         lcd.setBacklight(255);
         lcd.clear();
-        lcd.print(F("Sistema Avviato"));
+        lcd.print(F("Startup complete."));
     } else {
-        Serial.print(F("Errore LCD: Display non trovato all'indirizzo 0x"));
+        Serial.print(F("LCD error: display not found at address 0x"));
         Serial.println(DISPLAY_ADDR, HEX);
     }
 }
@@ -57,13 +57,13 @@ void updateDisplay() {
 
     if (s.isEmergency) {
         lcd.setCursor(0, 0);
-        lcd.print("!!EMERGENZA!!");
+        lcd.print("!!EMERGENCY!!");
 
         lcd.setCursor(0, 1);
         if (currMessageCount > 0) {
             lcd.print(emergencyMessages[displayPage % currMessageCount]);
         } else {
-            lcd.print("Causa non nota");
+            lcd.print("Unknown cause");
         }
         displayPage++;
         return;

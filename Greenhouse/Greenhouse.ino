@@ -134,7 +134,7 @@ void checkWifi() {
 void checkButton() {
     static bool lastButtonReading = HIGH;
     static unsigned long lastDebounceTime = 0;
-    const unsigned long debounceDelay = 50; // 50 millisecondi di debounce
+    const unsigned long debounceDelay = 50;
 
     if (!s.isEmergency) {
         s.isAcknowledged = false;
