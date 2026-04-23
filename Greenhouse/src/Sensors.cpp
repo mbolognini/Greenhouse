@@ -26,7 +26,10 @@ float getTemperature() {
 }
 
 bool isFlameDetected() {
-    return digitalRead(FLAME_PIN);
+    if (digitalRead(FLAME_PIN) == HIGH)
+        return true;
+    else
+        return false;
 }
 
 bool isAcknowledgmentButtonPressed() {

@@ -23,7 +23,7 @@ void setupDatabase() {
 }
 
 void updateDatabase() {
-  if(checkWiFiConnection()) return;
+  if(!checkWiFiConnection()) return;
 
   pointDevice.clearFields();
 

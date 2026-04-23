@@ -112,6 +112,7 @@ void checkLight() {
 
 void checkFlame() {
   if (m.isFire) {
+    s.isEmergency = true;
     s.isFire = true;
     addEmergencyMessage(F("Flame detected!"));
   }
