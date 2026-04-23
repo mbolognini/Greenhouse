@@ -2,112 +2,220 @@
 #include <ESP8266WebServer.h>
 #include "Greenhouse.h"
 #include "Params.h"
+#include <math.h>
 
 ESP8266WebServer server(80);
 
-void handle_root();
-void handle_data();
-void handle_ack();
-void handle_NotFound();
+void handleRoot();
+void handleData();
+void handleAck();
+void handleNotFound();
 String SendStatusHTML();
 
+const char* htmlIndex = R"rawliteral(
+<!DOCTYPE HTML><html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Greenhouse Status</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      background-color: #f4f7f6;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    h1 { color: #2c3e50; margin-bottom: 30px; }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+      width: 200px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    .card:hover { transform: translateY(-5px); }
+    .card-title {
+      font-size: 1.2rem;
+      color: #7f8c8d;
+      margin-bottom: 10px;
+    }
+    .card-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #2c3e50;
+      transition: color 0.3s;
+    }
+    .warning-icon {
+      color: #e74c3c;
+      font-size: 3rem;
+      display: none;
+      margin-bottom: 20px;
+      animation: blink 1s infinite alternate;
+    }
+    @keyframes blink {
+      0% { opacity: 1; }
+      100% { opacity: 0.5; }
+    }
+    .card.emergency {
+      background-color: #e74c3c;
+    }
+    .card.emergency .card-title,
+    .card.emergency .card-value,
+    .card.emergency {
+      color: white;
+    }
+    #ackBtn {
+      display: none;
+      padding: 15px 30px;
+      font-size: 1.2rem;
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 30px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: background-color 0.3s;
+    }
+    #ackBtn:hover { background-color: #c0392b; }
+  </style>
+</head>
+<body>
+  <h1>Greenhouse Monitor</h1>
+  <div id="warning-icon" class="warning-icon">&#9888; EMERGENCY! &#9888;</div>
+
+  <div class="container">
+    <div class="card" id="temp-card">
+      <div class="card-title">Temperature</div>
+      <div class="card-value"><span id="temp">--</span> &deg;C</div>
+    </div>
+    <div class="card" id="hum-card">
+      <div class="card-title">Humidity</div>
+      <div class="card-value"><span id="hum">--</span> %</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Darkness</div>
+      <div class="card-value"><span id="darkness">--</span></div>
+    </div>
+    <div class="card" id="flame-card">
+      <div class="card-title">Flame detected</div>
+      <div class="card-value"><span id="flame">--</span></div>
+    </div>
+    <div class="card" id="wifi-card">
+      <div class="card-title">WiFi power</div>
+      <div class="card-value"><span id="wifi">--</span> dBm</div>
+    </div>
+  </div>
+
+  <button id="ackBtn" onclick="sendAck()">Acknowledge</button>
+
+  <script>
+    function updateData() {
+      fetch('/data')
+        .then(response => response.json())
+        .then(data => {
+          const tempEl = document.getElementById('temp');
+          tempEl.innerText = data.temp !== null ? data.temp.toFixed(1) : "--";
+          document.getElementById('temp-card').classList.toggle('emergency', data.temp_status === 'emergency');
+
+          const humEl = document.getElementById('hum');
+          humEl.innerText = data.hum !== null ? data.hum.toFixed(1) : "--";
+          document.getElementById('hum-card').classList.toggle('emergency', data.hum_status === 'emergency');
+
+          document.getElementById('darkness').innerText = data.darkness + "%";
+          document.getElementById('flame').innerText = data.flame ? "YES" : "NO";
+          document.getElementById('flame-card').classList.toggle('emergency', data.flame);
+          document.getElementById('wifi').innerText = data.wifi;
+          document.getElementById('wifi-card').classList.toggle('emergency', data.wifi_status === 'low');
+
+          if (data.is_emergency && !data.is_acknowledged) {
+            document.getElementById('warning-icon').style.display = 'block';
+            document.getElementById('ackBtn').style.display = 'inline-block';
+          } else {
+            document.getElementById('warning-icon').style.display = 'none';
+            document.getElementById('ackBtn').style.display = 'none';
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching data:', err);
+        })
+        .finally(() => {
+          setTimeout(updateData, 2000);
+        });
+    }
+
+    function sendAck() {
+      fetch('/ack', { method: 'POST' })
+        .catch(err => console.error('Error acknowledging:', err));
+    }
+
+    updateData();
+  </script>
+</body>
+</html>
+)rawliteral";
+
 void setupWebServer() {
-    server.on("/", handle_root);
-    server.on("/data", handle_data);
-    server.on("/ACK", handle_ack);
-    server.onNotFound(handle_NotFound);
+    server.on("/", HTTP_GET, handleRoot);
+    server.on("/data", HTTP_GET, handleData);
+    server.on("/ack", HTTP_POST, handleAck);
+    server.onNotFound(handleNotFound);
     server.begin();
     Serial.println("HTTP Server started");
 }
 
-void handle_root() {
-  server.send(200, F("text/html"), SendStatusHTML());
+void handleRoot() {
+  server.send(200, F("text/html"), htmlIndex);
 }
 
-void handle_data() {
-  String json = "{";
-  json += "\"temperature\":" + String(m.temp, 1) + ",";
-  json += "\"humidity\":" + String(m.hum, 1) + ",";
-  json += "\"light\":" + String(m.light) + ",";
-  json += "\"flame\":" + String(m.isFire ? "true" : "false") + ",";
-  json += "\"wifi\":" + String((int)m.wifiStrength) + ",";
-  json += "\"is_emergency\":" + String(s.isEmergency ? "true" : "false") + ",";
-  json += "\"is_acknowledged\":" + String(s.isAcknowledged ? "true" : "false");
-  json += "}";
-  server.send(200, F("application/json"), json);
+void handleData() {
+    String normal_status = F("normal");
+    String emergency_status = F("emergency");
+    String low_status = F("low");
+
+    String temp_status = (s.isTempEmergency) ? emergency_status : normal_status;
+    String hum_status = (s.isHumEmergency) ? emergency_status : normal_status;
+    String darkness_status = (s.isDark) ? low_status : normal_status;
+    String wifi_status = (s.isWifiEmergency) ? low_status : normal_status;
+
+    String json = "{";
+    json += "\"temp\":" + String(m.temp, 1) + ",";
+    json += "\"temp_status\":\"" + temp_status + "\",";
+    json += "\"hum\":" + String(m.hum, 1) + ",";
+    json += "\"hum_status\":\"" + hum_status + "\",";
+    json += "\"darkness\":" + String(ceil((float)m.light / 1024.0f * 100)) + ",";
+    json += "\"darkness_status\":\"" + darkness_status + "\",";
+    json += "\"flame\":" + String(s.isFire ? "true" : "false") + ",";
+    json += "\"wifi\":" + String((int)m.wifiStrength) + ",";
+    json += "\"wifi_status\":\"" + wifi_status + "\",";
+    json += "\"is_emergency\":" + String(s.isEmergency ? "true" : "false") + ",";
+    json += "\"is_acknowledged\":" + String(s.isAcknowledged ? "true" : "false");
+    json += "}";
+    server.send(200, F("application/json"), json);
 }
 
-void handle_ack() {
+void handleAck() {
   if (s.isEmergency)
     s.isAcknowledged = true;
   server.send(200, F("text/plain"), F("OK"));
 }
 
-void handle_NotFound()
+void handleNotFound()
 {
   server.send(404, F("text/plain"), F("Not found"));
 }
 
 void handleClient() {
     server.handleClient();
-}
-
-String SendStatusHTML()
-{
-  String ptr = F(
-      "<!DOCTYPE html> <html>\n"
-      "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n"
-      "<title>System Status</title>\n"
-      "<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n"
-      "body{margin-top: 50px;} h1 {color: #444444;margin: 30px auto 30px;} h3 {color: #444444;margin-bottom: 30px;}\n"
-      ".button {display: inline-block; background-color: #f39c12; border: none; color: white; padding: 13px 30px; text-decoration: none; font-size: 20px; margin: 20px auto; cursor: pointer; border-radius: 4px;}\n"
-      ".button:active {background-color: #e67e22;}\n"
-      ".val {font-size: 18px; color: #333; margin-bottom: 10px;}\n"
-      ".warning {color: red; font-size: 60px; margin-bottom: 20px;}\n"
-      "</style>\n"
-      "<script>\n"
-      "function updateData() {\n"
-      "  fetch('/data')\n"
-      "    .then(response => {\n"
-      "      if (!response.ok) throw new Error('Network response was not ok');\n"
-      "      return response.json();\n"
-      "    })\n"
-      "    .then(data => {\n"
-      "      document.getElementById('temp').innerHTML = 'Temperature: ' + data.temperature + ' &deg;C';\n"
-      "      document.getElementById('hum').innerHTML = 'Humidity: ' + data.humidity + ' %';\n"
-      "      document.getElementById('light').innerHTML = 'Light: ' + data.light;\n"
-      "      document.getElementById('flame').innerHTML = 'Flame: ' + (data.flame ? 'YES' : 'NO');\n"
-      "      document.getElementById('wifi').innerHTML = 'WiFi Power: ' + data.wifi + ' dBm';\n"
-      "      let eZone = document.getElementById('emergency-zone');\n"
-      "      if(data.is_emergency) {\n"
-      "        let html = '<div class=\"warning\">&#9888;</div>\\n';\n"
-      "        if(!data.is_acknowledged) {\n"
-      "          html += '<a class=\"button\" href=\"#\" onclick=\"fetch(\\'/ACK\\'); return false;\">Acknowledge</a>\\n';\n"
-      "        }\n"
-      "        eZone.innerHTML = html;\n"
-      "      } else {\n"
-      "        eZone.innerHTML = '';\n"
-      "      }\n"
-      "      setTimeout(updateData, 5000);\n"
-      "    })\n"
-      "    .catch(error => {\n"
-      "      console.error('Errore:', error);\n"
-      "      setTimeout(updateData, 5000);\n"
-      "    });\n"
-      "}\n"
-      "window.onload = updateData;\n"
-      "</script>\n"
-      "</head>\n"
-      "<body>\n"
-      "<h1>System Status</h1>\n"
-      "<div id=\"emergency-zone\"></div>\n"
-      "<h3>Sensor Values</h3>\n"
-      "<div class=\"val\" id=\"temp\">Temperature: -- &deg;C</div>\n"
-      "<div class=\"val\" id=\"hum\">Humidity: -- %</div>\n"
-      "<div class=\"val\" id=\"light\">Light: --</div>\n"
-      "<div class=\"val\" id=\"flame\">Flame: --</div>\n"
-      "<div class=\"val\" id=\"wifi\">WiFi Power: -- dBm</div>\n"
-      "</body>\n"
-      "</html>\n");
-  return ptr;
 }

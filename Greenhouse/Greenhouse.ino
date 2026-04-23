@@ -75,6 +75,9 @@ void updateStatus() {
     s.isBadAir = false;
     s.isFire = false;
     s.isDark = false;
+    s.isTempEmergency = false;
+    s.isHumEmergency = false;
+    s.isWifiEmergency = false;
 
     clearEmergencyMessages();
 
@@ -90,6 +93,7 @@ void checkTemperature() {
 
     if (m.temp <= COLD_THRESHOLD || m.temp >= HOT_THRESHOLD) {
         s.isEmergency = true;
+        s.isTempEmergency = true;
         s.isBadAir = true;
         addEmergencyMessage(F("Extreme temperature!"));
     }
@@ -100,6 +104,7 @@ void checkHumidity() {
 
     if (m.hum <= DRY_THRESHOLD || m.hum >= WET_THRESHOLD) {
         s.isEmergency = true;
+        s.isHumEmergency = true;
         s.isBadAir = true;
         addEmergencyMessage(F("Extreme humidity!"));
     }
@@ -121,6 +126,7 @@ void checkFlame() {
 void checkWifi() {
   if (m.wifiStrength <= WIFI_POWER_THRESHOLD) {
     s.isEmergency = true;
+    s.isWifiEmergency = true;
     addEmergencyMessage(F("Weak WiFi signal!"));
   }
 }

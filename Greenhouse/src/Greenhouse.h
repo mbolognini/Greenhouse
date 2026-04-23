@@ -17,6 +17,9 @@ struct Status {
     bool isDark;
     bool isFire;
     bool isAcknowledged;
+    bool isTempEmergency;
+    bool isHumEmergency;
+    bool isWifiEmergency;
 };
 extern struct Status s;
 
