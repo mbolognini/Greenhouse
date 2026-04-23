@@ -2,6 +2,8 @@
 #ifndef PARAMS_H
 #define PARAMS_H
 
+#include "Secrets.h"
+
 /*-------------------------------
 ------SENSORS AND ACTUATORS------
 -------------------------------*/
@@ -40,18 +42,9 @@
 #define DISPLAY_UPDATE_INTERVAL 2000
 
 /*-------------------------------
------------WIFI e DB-------------
+------------------DB-------------
 -------------------------------*/
 
-// WiFi
-#define SECRET_SSID "IoTLabThingsU14"
-#define SECRET_PASS "L@b%I0T*Ui4!P@sS**0%Lessons!"
-
-// InfluxDB
-#define INFLUXDB_URL "http://149.132.176.75:8086"
-#define INFLUXDB_TOKEN "FlcfbYuuR_hoX26ghlqvtD0wDJ4p-9yaySFndn2u2hi591m42ZRm_BZSkGqf575RUSKzoHAWMZ87ry5uk7mi9Q=="
-#define INFLUXDB_ORG "labiot-org"
-#define INFLUXDB_BUCKET "GiacomoMaggioni-bucket"
 #define INFLUXDB_UPDATE_INTERVAL 15000
 #define TZ_INFO "CET-1CEST,M3.5.0,M10.5.0/3"
 
