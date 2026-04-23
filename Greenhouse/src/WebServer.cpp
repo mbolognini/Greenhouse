@@ -1,7 +1,15 @@
-#include "src/WebServer.h"
-#include "src/header.h"
+#include "WebServer.h"
+#include <ESP8266WebServer.h>
+#include "Greenhouse.h"
+#include "Params.h"
 
 ESP8266WebServer server(80);
+
+void handle_root();
+void handle_data();
+void handle_ack();
+void handle_NotFound();
+String SendStatusHTML();
 
 void setupWebServer() {
     server.on("/", handle_root);
@@ -9,11 +17,7 @@ void setupWebServer() {
     server.on("/ACK", handle_ack);
     server.onNotFound(handle_NotFound);
     server.begin();
-    Serial.println("HTTP Server started")
-}
-
-void handleClient() {
-    server.handleClient();
+    Serial.println("HTTP Server started");
 }
 
 void handle_root() {
@@ -36,13 +40,16 @@ void handle_data() {
 void handle_ack() {
   if (s.isEmergency)
     s.isAcknowledged = true;
-  }
   server.send(200, F("text/plain"), F("OK"));
 }
 
 void handle_NotFound()
 {
   server.send(404, F("text/plain"), F("Not found"));
+}
+
+void handleClient() {
+    server.handleClient();
 }
 
 String SendStatusHTML()

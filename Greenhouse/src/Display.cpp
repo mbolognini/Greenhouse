@@ -1,8 +1,12 @@
 #include "Display.h"
 #include <Wire.h>
-#include "SensorsManager.h"
+#include <Arduino.h>
+#include <LiquidCrystal_I2C.h>
+#include "Greenhouse.h"
+#include "Params.h"
+#include "Sensors.h"
 #include "WifiManager.h"
-#include "header.h"
+
 
 const int maxMessages = 4;
 String emergencyMessages[maxMessages];

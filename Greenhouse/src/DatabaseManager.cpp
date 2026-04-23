@@ -1,8 +1,9 @@
-#include "src/DatabaseManager.h"
+#include "DatabaseManager.h"
 #include <InfluxDbClient.h>
 #include <InfluxDbCloud.h>
-#include "src/header.h"
-#include "src/WifiManager.h"
+#include "Greenhouse.h"
+#include "Params.h"
+#include "WifiManager.h"
 
 
 // Inizializzazione delle istanze reali
@@ -22,7 +23,7 @@ void setupDatabase() {
 }
 
 void updateDatabase() {
-  if (WiFi.status() != WL_CONNECTED) return;
+  if(checkWiFiConnection()) return;
 
   pointDevice.clearFields();
 

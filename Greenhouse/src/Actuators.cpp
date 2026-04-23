@@ -1,5 +1,8 @@
-#include "src/Actuators.h"
-#include "src/header.h"
+#include "Actuators.h"
+#include <Servo.h>
+#include <Ticker.h>
+#include "Params.h"
+
 
 Servo servo;
 
@@ -9,7 +12,7 @@ int currServoPos = 0; // Inizia a 0, come impostato nel setup()
 
 // Variabili per l'emergenza (Ticker)
 Ticker emergencyTicker;
-bool is_ticker_active = false;
+bool isTickerActive = false;
 
 
 void setupActuators() {
@@ -23,10 +26,11 @@ void setupActuators() {
 }
 
 void moveWindow(WindowPos targetPosition) {
-    if (currServoPos != targetPosition) {
+    int targetServoPos = static_cast<int>(targetPosition);
+    if (currServoPos != targetServoPos) {
         if (millis() - lastServoUpdate >= DELAY) {
             lastServoUpdate = millis();
-            if (currServoPos < targetPosition)
+            if (currServoPos < targetServoPos)
                 currServoPos++;
             else
                 currServoPos--;
@@ -36,7 +40,7 @@ void moveWindow(WindowPos targetPosition) {
 }
 
 void turnLamp(LampState targetState) {
-    if (targetState == 1)
+    if (targetState == LampState::ON)
         digitalWrite(LAMP_LED_PIN, LOW);
     else
         digitalWrite(LAMP_LED_PIN, HIGH);
@@ -47,17 +51,13 @@ void toggle_emergency_alert() {
 }
 
 void updateEmergencyBuzzerLed(EmergencyBuzzerLedState targetState) {
-    if (targetState == EmergencyBuzzerLedState::OFF) {
-        if (is_ticker_active) {
-            emergencyTicker.detach();
-            is_ticker_active = false;
-            digitalWrite(BUZZER_LED_PIN, HIGH);
-        }
+    if (targetState == EmergencyBuzzerLedState::OFF && isTickerActive) {
+        emergencyTicker.detach();
+        isTickerActive = false;
+        digitalWrite(BUZZER_LED_PIN, HIGH);
     }
-    else {
-        if (!is_ticker_active) {
-            emergencyTicker.attach(0.5, toggle_emergency_alert);
-            is_ticker_active = true;
-        }
+    else if (!isTickerActive) {
+        emergencyTicker.attach(0.5, toggle_emergency_alert);
+        isTickerActive = true;
     }
 }

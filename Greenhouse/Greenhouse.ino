@@ -1,12 +1,12 @@
-
-#include "header.h"
+#include <Arduino.h>
+#include "src/Greenhouse.h"
+#include "src/Params.h"
 #include "src/Actuators.h"
 #include "src/DatabaseManager.h"
 #include "src/Display.h"
 #include "src/Sensors.h"
 #include "src/WebServer.h"
 #include "src/WifiManager.h"
-
 
 struct Measurements m;
 struct Status s;
@@ -38,40 +38,45 @@ void loop()
     }
 
     static unsigned long lastStateUpdate = 0;
-    if (millis() - lastStateUpdate >= STATE_UPDATE_INTERVAL)
-    {
+    if (millis() - lastStateUpdate >= STATE_UPDATE_INTERVAL) {
         lastStateUpdate = millis();
 
         measure();
         updateStatus();
     }
 
-    check_button();
+    m.isAckButtonPressed = isAcknowledgmentButtonPressed();
+    checkButton();
 
     updateDisplay();
     updateEmergency();
     updateServo();
     updateLamp();
 
-    updateDatabase();
+    static unsigned long lastDbUpdate = 0;
+    if (millis() - lastDbUpdate >= 5000) {
+        lastDbUpdate = millis();
+        updateDatabase();
+    }
+
     handleClient();
 }
 
-Status measure() {
+void measure() {
     m.temp = getTemperature();
     m.hum = getHumidity();
     m.light = getLight();
     m.isFire = isFlameDetected();
-    m.isAckButtonPressed = isAcknowledgmentButtonPressed();
     m.wifiStrength = getWiFiStrength();
-    }
 }
 
 void updateStatus() {
-    is_emergency = false;
-    is_bad_air = false;
-    is_fire = false;
-    is_dark = false;
+    s.isEmergency = false;
+    s.isBadAir = false;
+    s.isFire = false;
+    s.isDark = false;
+
+    clearEmergencyMessages();
 
     checkTemperature();
     checkHumidity();
@@ -80,17 +85,17 @@ void updateStatus() {
     checkWifi();
 }
 
-void check_temperature() {
+void checkTemperature() {
     if (isnan(m.temp)) return;
 
     if (m.temp <= COLD_THRESHOLD || m.temp >= HOT_THRESHOLD) {
         s.isEmergency = true;
         s.isBadAir = true;
-        addEmergencyMessage("Extreme temperature!");
+        addEmergencyMessage(F("Extreme temperature!"));
     }
 }
 
-void check_humidity() {
+void checkHumidity() {
     if (isnan(m.hum)) return;
 
     if (m.hum <= DRY_THRESHOLD || m.hum >= WET_THRESHOLD) {
@@ -100,26 +105,26 @@ void check_humidity() {
     }
 }
 
-void check_light() {
+void checkLight() {
     if (m.light >= LOW_LIGHT_THRESHOLD)
         s.isDark = true;
 }
 
-void check_flame() {
+void checkFlame() {
   if (m.isFire) {
     s.isFire = true;
     addEmergencyMessage(F("Flame detected!"));
   }
 }
 
-void check_wifi() {
+void checkWifi() {
   if (m.wifiStrength <= WIFI_POWER_THRESHOLD) {
     s.isEmergency = true;
     addEmergencyMessage(F("Weak WiFi signal!"));
   }
 }
 
-void check_button() {
+void checkButton() {
     static bool lastButtonReading = HIGH;
     static unsigned long lastDebounceTime = 0;
     const unsigned long debounceDelay = 50; // 50 millisecondi di debounce
@@ -138,7 +143,7 @@ void check_button() {
 }
 
 void updateServo() {
-    int targetPos = WindowPos::CLOSE;
+    enum WindowPos targetPos = WindowPos::CLOSE;
     if (!s.isFire && s.isBadAir)
         targetPos = WindowPos::OPEN;
     moveWindow(targetPos);
@@ -155,5 +160,5 @@ void updateEmergency() {
     if (s.isEmergency && !s.isAcknowledged)
         updateEmergencyBuzzerLed(EmergencyBuzzerLedState::ON);
     else
-        updateEmergencyBuzzerLed(EmergencyBuzzerLedState::OFF\)
+        updateEmergencyBuzzerLed(EmergencyBuzzerLedState::OFF);
 }

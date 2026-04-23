@@ -1,5 +1,6 @@
-#include "src/Sensors.h"
-#include "src/header.h"
+#include "Sensors.h"
+#include <DHT.h>
+#include "Params.h"
 
 DHT dht = DHT(DHTPIN, DHTTYPE);
 

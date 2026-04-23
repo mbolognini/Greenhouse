@@ -1,10 +1,13 @@
 #include "WifiManager.h"
-#include "header.h" // Qui devono esserci SECRET_SSID e SECRET_PASS
+#include <ESP8266WiFi.h>
+#include "Params.h" // Qui devono esserci SECRET_SSID e SECRET_PASS
 
 char ssid[] = SECRET_SSID; // your network SSID (name)
 char pass[] = SECRET_PASS; // your network password
 
-void setupWiFi() {
+bool setupWiFi() {
+
+    // METTERE FALLIMENTO CONNESSIONE
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(SECRET_SSID);
@@ -20,11 +23,13 @@ void setupWiFi() {
 
   Serial.println("\nWiFi connected");
   printWifiStatus();
+  return true;
 }
 
-void checkWiFiConnection() {
-  if (WiFi.status() != WL_CONNECTED)
-    setupWiFi();
+bool checkWiFiConnection() {
+    if (WiFi.status() != WL_CONNECTED)
+        return setupWiFi();
+    return true;
 }
 
 long getWiFiStrength() {
