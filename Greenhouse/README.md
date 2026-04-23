@@ -35,6 +35,9 @@ conditions and automate lighting while providing real-time data visualization.
    - LiquidCrystal_I2C
 2. Create a `src/secrets.h` file to store your credentials. You can use this template:
 ```cpp
+#ifndef SECRETS_H
+#define SECRETS_H
+
 #define SECRET_SSID "your_wifi_SSID"
 #define SECRET_PASS "your_wifi_password"
 
@@ -42,6 +45,8 @@ conditions and automate lighting while providing real-time data visualization.
 #define INFLUXDB_TOKEN "your-token"
 #define INFLUXDB_ORG "your-org"
 #define INFLUXDB_BUCKET "your-bucket"
+
+#endif
 ```
 
 ## How to run
