@@ -55,3 +55,6 @@ conditions and automate lighting while providing real-time data visualization.
 3) Select the correct board from the Arduino IDE.
 4) Click Upload.
 5) Open the Serial Monitor (baud rate 115200) to verify the Wi-Fi connection and data transmission.
+
+## Future improvements
+- Add dynamic thresholds' configuration via web page.
