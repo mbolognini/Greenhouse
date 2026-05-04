@@ -33,7 +33,7 @@ conditions and automate lighting while providing real-time data visualization.
    - DHT sensor library
    - ESP8266 InfluxDB
    - LiquidCrystal_I2C
-2. Create a `src/secrets.h` file to store your credentials. You can use this template:
+2. Create a `src/Secrets.h` file to store your credentials. You can use this template:
 ```cpp
 #ifndef SECRETS_H
 #define SECRETS_H
